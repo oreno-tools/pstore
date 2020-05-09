@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	AppVersion = "0.0.1"
+	AppVersion = "0.0.2"
 )
 
 var (
@@ -36,6 +36,7 @@ var (
 	argPut       = flag.Bool("put", false, "パラメータを追加する")
 	argGet       = flag.Bool("get", false, "パラメータの値を取得する")
 	argName      = flag.String("name", "", "パラメータの名前を指定する")
+	argPrefix    = flag.String("prefix", "", "パラメータのプレフィックス指定する")
 	argValue     = flag.String("value", "", "パラメータ名を値を指定する")
 	argOverwrite = flag.Bool("overwrite", false, "パラメータを上書きする")
 	argSecure    = flag.Bool("secure", false, "SecureString でパラメータを追加する")
@@ -52,13 +53,14 @@ type Parameter struct {
 	Name             string `json:"name"`
 	Value            string `json:"value"`
 	Type             string `json:"type"`
+	DataType         string `json:"data_type"`
 	Version          string `json:"version"`
 	LastModifiedDate string `json:"last_modified_date"`
 }
 
 func outputTbl(data [][]string) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "Value", "Type", "Version", "LastModifiedDate"})
+	table.SetHeader([]string{"Name", "Value", "Type", "DataType", "Version", "LastModifiedDate"})
 	for _, value := range data {
 		table.Append(value)
 	}
@@ -163,7 +165,7 @@ func convertDate(d time.Time) (convertedDate string) {
 	return convertedDate
 }
 
-func getParameter(ssmClient *ssm.SSM, pName string) (pValue string, pVersion string) {
+func getParameter(ssmClient *ssm.SSM, pName string) (pValue string, pVersion string, pDataType string) {
 	params := &ssm.GetParameterInput{
 		Name:           aws.String(pName),
 		WithDecryption: aws.Bool(true),
@@ -181,12 +183,17 @@ func getParameter(ssmClient *ssm.SSM, pName string) (pValue string, pVersion str
 	}
 
 	pVersion = strconv.FormatInt(*v.Parameter.Version, 10)
+	if v.Parameter.DataType != nil {
+		pDataType = *v.Parameter.DataType
+	} else {
+		pDataType = "N/A"
+	}
 
-	return pValue, pVersion
+	return pValue, pVersion, pDataType
 }
 
 func getParameterValue(ssmClient *ssm.SSM, pName string) (pValue string) {
-	pValue, _ = getParameter(ssmClient, pName)
+	pValue, _, _ = getParameter(ssmClient, pName)
 	return pValue
 }
 
@@ -202,11 +209,12 @@ func listParameters(ssmClient *ssm.SSM) {
 		}
 		for _, r := range res.Parameters {
 			convertedDate := convertDate(*r.LastModifiedDate)
-			pValue, pVersion := getParameter(ssmClient, *r.Name)
+			pValue, pVersion, pDataType := getParameter(ssmClient, *r.Name)
 			Parameter := []string{
 				*r.Name,
 				pValue,
 				*r.Type,
+				pDataType,
 				pVersion,
 				convertedDate,
 			}
@@ -219,12 +227,23 @@ func listParameters(ssmClient *ssm.SSM) {
 		continue
 	}
 
-	if *argCsv == true {
-		outputCsv(allParameters)
-	} else if *argJson == true {
-		outputJson(allParameters)
+	filterdParameters := [][]string{}
+	if *argPrefix != "" {
+		for _, p := range allParameters {
+			if strings.HasPrefix(p[0], *argPrefix) {
+				filterdParameters = append(filterdParameters, p)
+			}
+		}
 	} else {
-		outputTbl(allParameters)
+		filterdParameters = allParameters
+	}
+
+	if *argCsv == true {
+		outputCsv(filterdParameters)
+	} else if *argJson == true {
+		outputJson(filterdParameters)
+	} else {
+		outputTbl(filterdParameters)
 	}
 }
 
