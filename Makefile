@@ -4,7 +4,7 @@ default: ## ヘルプを表示する
 test-setup: ## テストのセットアップ
 	@cd tests; ./_setup.sh
 
-test-setup: ## テストの実行
+test: ## テストの実行
 	@go test -v
 
 test-teardown: ## テストの環境の破棄
