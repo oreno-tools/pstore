@@ -1,8 +1,14 @@
 default: ## ヘルプを表示する
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-test: ## test テストの実行
-	@cd tests; ./_setup.sh; cd ../; go test -v && cd tests; ./_teardown.sh; cd ../
+test-setup: ## テストのセットアップ
+	@cd tests; ./_setup.sh
+
+test-setup: ## テストの実行
+	@go test -v
+
+test-teardown: ## テストの環境の破棄
+	@cd tests; ./_teardown.sh
 
 build: ## バイナリをビルドする
 	@./build.sh pstore.go

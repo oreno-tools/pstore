@@ -25,7 +25,7 @@ func TestStdoutList(t *testing.T) {
 	cmd := exec.Command("sh", "tests/test_stdout_list.sh")
 	stdout := new(bytes.Buffer)
 	cmd.Stdout = stdout
-	output := "testtest"
+	output := "testtest1"
 
 	_ = cmd.Run()
 

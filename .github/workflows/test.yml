@@ -23,5 +23,13 @@ jobs:
       - name: Get dependencies
         run: go get -v -t -d ./...
 
+      - name: Run Test environment setup
+        run: make test-setup
+
       - name: Run Test
         run: make test
+
+      - name: Run Test environment teardown
+        if: always()
+        run: make test-teardown
+
